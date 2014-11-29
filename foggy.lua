@@ -128,6 +128,37 @@ function xrandr.set_relative_pos(name, relation, other)
   xrandr.cmd(string.format('xrandr --output %s --%s %s', name, relation, other))
 end
 
+function xrandr.identify_outputs()
+  local wibox = require("wibox")
+  local naughty = require('naughty')
+  for name, output in pairs(xrandr.info().outputs) do
+    if output.connected and output.on then
+      local textbox = wibox.widget.textbox()
+      local box = wibox({fg = '#ffffff', bg = '#77777700'})
+      local layout = wibox.layout.fixed.horizontal()
+      textbox:set_font('sans 36')
+      textbox:set_markup(name)
+      layout:add(textbox)
+      box:set_widget(layout)
+      local w, h = textbox:fit(-1, -1)
+      local xoff = (output.resolution[1] - w) / 2
+      local yoff = (output.resolution[2] - h) / 2
+      box:geometry({x = output.offset[1] + xoff, y = output.offset[2] + yoff, width=w, height=h})
+
+      box.ontop = true
+      box.visible = true
+      local tm = timer({timeout=3})
+      tm:connect_signal('timeout', function()
+        box.visible = false
+        tm:stop()
+        box = nil
+        tm = nil
+      end)
+      tm:start()
+    end
+  end
+end
+
 function xinerama.info()
   local info = { heads = {} }
   local pats = {
@@ -246,6 +277,8 @@ function foggy.screen_menu(co, add_output_name)
   if add_output_name then
     table.insert(menu, 1, { '[' .. co.name .. ']' , nil })
   end
+
+  menu[#menu + 1] = { 'i&dentify', function() xrandr.identify_outputs() end }
   
   return menu
 end
