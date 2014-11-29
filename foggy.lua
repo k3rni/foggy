@@ -128,6 +128,10 @@ function xrandr.set_relative_pos(name, relation, other)
   xrandr.cmd(string.format('xrandr --output %s --%s %s', name, relation, other))
 end
 
+function xrandr.set_primary(name)
+  xrandr.cmd(string.format('xrandr --output %s --primary', name))
+end
+
 function xrandr.identify_outputs()
   local wibox = require("wibox")
   local naughty = require('naughty')
@@ -160,13 +164,14 @@ function xrandr.identify_outputs()
 end
 
 function xinerama.info()
-  local info = { heads = {} }
+  local info = { heads = {}, head_count = 0 }
   local pats = {
     ['^%s+head #(%d+): (%d+)x(%d+) @ (%d+),(%d+)$'] = function(matches)
       info.heads[matches[1]] = { 
         resolution = { tonumber(matches[2]), tonumber(matches[3]) },
         offset = { tonumber(matches[4]), tonumber(matches[5]) }
       }
+      info.head_count = info.head_count + 1
     end
   }
   local fp = io.popen('xdpyinfo -ext XINERAMA')
@@ -253,7 +258,7 @@ function foggy.screen_menu(co, add_output_name)
     end
   end
 
-  for i, dir in ipairs({ "left-of", "right-of", "above", "below" }) do
+  for i, dir in ipairs({ "left-of", "right-of", "above", "below", 'same-as' }) do
     local relmenu = {}
     for j, _name in ipairs(other_outputs) do
       relmenu[#relmenu + 1] = { _name, function() xrandr.set_relative_pos(co.name, dir, _name) end }
@@ -283,19 +288,19 @@ function foggy.screen_menu(co, add_output_name)
   return menu
 end
 
-function foggy.build_menu(screen_count, current_screen)
+function foggy.build_menu(current_screen)
+  local outputs = xrandr.info().outputs
   local thisout = foggy.get_output(current_screen)
   local menu = foggy.screen_menu(thisout, true)
   local visible = { [thisout.name] = true }
-  for i = 1, screen_count do
-    if i ~= current_screen then
-      local out = foggy.get_output(i)
-      visible[out.name] = true
-      menu[#menu + 1] = { out.name, foggy.screen_menu(out, false) }
+  -- iterate over outputs, not screens
+  -- otherwise menu is bugged when cloning
+  for name, output in pairs(outputs) do
+    if output.connected and output.on and output.name ~= thisout.name then
+      menu[#menu + 1] = { name, foggy.screen_menu(output, false) }
     end
   end
   -- add connected but disabled screens
-  local outputs = xrandr.info().outputs
   for name, output in pairs(outputs) do
     if output.connected and (not output.on) and (not visible[name]) then
       menu[#menu + 1] = { name, foggy.screen_menu(output, false) }
@@ -309,7 +314,7 @@ if awesome then
   xrandr.cmd = awful.util.spawn_with_shell
   function foggy.menu(current_screen)
     local current_screen = current_screen or mouse.screen
-    local menu = foggy.build_menu(screen.count(), current_screen)
+    local menu = foggy.build_menu(current_screen)
     awful.menu(menu):show()
   end
   function foggy.mt:__call(...)
