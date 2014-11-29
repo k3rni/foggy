@@ -1,8 +1,12 @@
 if not awesome then
   require('luarocks.loader')
-  local inspect = require('inspect')
+  inspect = require('inspect')
+  naughty = { notify = function(args)
+    print(args.text)
+  end }
 else
-  local inspect = {}
+  inspect = function(...) end
+  local naughty = require('naughty')
 end
 
 local xrandr = {}
@@ -43,15 +47,28 @@ function xrandr.info()
         available_transformations = xrandr.parse_transformations(matches[8], false),
         physical_size = { tonumber(matches[9]), tonumber(matches[10]) },
         connected = true,
+        on = true,
         primary = (matches[2] == 'primary'),
         modes = {}
+      }
+      info.outputs[matches[1]] = current_output
+    end,
+    ['^(%g+) connected %(([%a%s]+)%)$'] = function(matches)
+      -- connected but off
+      current_output = {
+        name = matches[1],
+        available_transformations = xrandr.parse_transformations(matches[2], false),
+        transformations = xrandr.parse_transformations(''),
+        modes = {},
+        connected = true,
+        on = false
       }
       info.outputs[matches[1]] = current_output
     end,
     ['^(%g+) disconnected %(([%a%s]+)%)$'] = function(matches)
       info.outputs[matches[1]] = {
         available_transformations = xrandr.parse_transformations(matches[2], false),
-        connected = false
+        connected = false, on = false
       }
     end,
     ['^%s+(%d+)x(%d+)%s+(.+)$'] = function(matches)
@@ -142,7 +159,7 @@ function foggy.get_output(screen_num)
   -- the current xrandr output is the one that matches current screen's resolution + offset
   local co = nil
   for name, output in pairs(xrinfo.outputs) do
-    if output.connected then
+    if output.connected and output.on then
       if (output.resolution[0] == xs.resolution[0]) and (output.resolution[1] == xs.resolution[1])
         and (output.offset[0] == xs.offset[0] and output.offset[1] == xs.offset[1]) then
         co = output 
@@ -152,10 +169,9 @@ function foggy.get_output(screen_num)
   return co
 end
 
-function foggy.screen_menu(current_screen, add_output_name)
+function foggy.screen_menu(co, add_output_name)
   local add_output_name = add_output_name or false
-  local xrinfo = xrandr.info()
-  local co = foggy.get_output(current_screen)
+  local co = co
 
   local resmenu = { { '&auto', function() xrandr.auto_mode(co.name) end } }
   for i, mode in ipairs(co.modes) do
@@ -196,25 +212,39 @@ function foggy.screen_menu(current_screen, add_output_name)
 
   local menu = {
     { '&mode', resmenu },
-    { '&transform', transmenu },
-    { '&off', function() xrandr.off(co.name) end }
   }
-  if not co.primary then
-    table.insert(menu, 3, { '&primary', function() xrandr.set_primary(co.name) end })
+  if co.on then
+    menu[#menu + 1] = { '&transform', transmenu }
+    menu[#menu + 1] = { '&off', function() xrandr.off(co.name) end }
+
+    if not co.primary then
+      menu[#menu + 1] = { '&primary', function() xrandr.set_primary(co.name) end }
+    end
   end
 
   if add_output_name then
     table.insert(menu, 1, { '[' .. co.name .. ']' , nil })
   end
-
+  
   return menu
 end
 
 function foggy.build_menu(screen_count, current_screen)
-  local menu = foggy.screen_menu(current_screen, true)
+  local thisout = foggy.get_output(current_screen)
+  local menu = foggy.screen_menu(thisout, true)
+  local visible = { [thisout.name] = true }
   for i = 1, screen_count do
     if i ~= current_screen then
-      menu[#menu + 1] = { foggy.get_output(i).name, foggy.screen_menu(i, false) }
+      local out = foggy.get_output(i)
+      visible[out.name] = true
+      menu[#menu + 1] = { out.name, foggy.screen_menu(out, false) }
+    end
+  end
+  -- add connected but disabled screens
+  local outputs = xrandr.info().outputs
+  for name, output in pairs(outputs) do
+    if output.connected and (not output.on) and (not visible[name]) then
+      menu[#menu + 1] = { name, foggy.screen_menu(output, false) }
     end
   end
   return menu
@@ -224,7 +254,7 @@ if awesome then
   local awful = require('awful')
   xrandr.cmd = awful.util.spawn_with_shell
   function foggy.menu(current_screen)
-    local current_screen = mouse.screen
+    local current_screen = current_screen or mouse.screen
     local menu = foggy.build_menu(screen.count(), current_screen)
     awful.menu(menu):show()
   end
@@ -233,6 +263,7 @@ if awesome then
   end
   return setmetatable(foggy, foggy.mt)
 else
-  local v = foggy.build_menu(3, 1)
+  -- print(inspect(xrandr.info()))
+  local v = foggy.build_menu(2, 1)
   print(inspect(v))
 end
