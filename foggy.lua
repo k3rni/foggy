@@ -15,7 +15,7 @@ foggy = { mt = {} }
 
 function xrandr.parse_transformations(text, assume_normal)
   local rot = { normal = (assume_normal or false), left = false, right = false, inverted = false}
-  local refl = { x = false, y = false }
+  local refl = { x = false, y = false, normal = (assume_normal or false) }
   for word in text:gmatch("(%w+)") do
     for k, _v in pairs(rot) do
       if k == word then rot[k] = true end
@@ -236,7 +236,7 @@ function foggy.screen_menu(co, add_output_name)
       if ct.rotations[op] then
         flags = ' ✓'
       end
-      transmenu[#transmenu + 1] = { string.format('%s%s', op, flags), function() xrandr.set_rotate(co.name, op) end }
+      transmenu[#transmenu + 1] = { string.format('rotate %s%s', op, flags), function() xrandr.set_rotate(co.name, op) end }
     end
   end
 
@@ -246,7 +246,7 @@ function foggy.screen_menu(co, add_output_name)
       if ct.reflections[op] then
         flags = ' ✓'
       end
-      transmenu[#transmenu + 1] = { string.format('%s%s', op, flags), function() xrandr.set_reflect(co.name, op) end }
+      transmenu[#transmenu + 1] = { string.format('reflect %s%s', op, flags), function() xrandr.set_reflect(co.name, op) end }
     end
   end
 
