@@ -124,6 +124,10 @@ function xrandr.set_reflect(name, refl)
   xrandr.cmd(string.format('xrandr --output %s --reflect %s', name, refl))
 end
 
+function xrandr.set_relative_pos(name, relation, other)
+  xrandr.cmd(string.format('xrandr --output %s --%s %s', name, relation, other))
+end
+
 function xinerama.info()
   local info = { heads = {} }
   local pats = {
@@ -210,12 +214,29 @@ function foggy.screen_menu(co, add_output_name)
     end
   end
 
+  local posmenu = {}
+  local other_outputs = {}
+  for name, _out in pairs(xrandr.info().outputs) do
+    if name ~= co.name and _out.connected and _out.on then
+      other_outputs[#other_outputs + 1] = name
+    end
+  end
+
+  for i, dir in ipairs({ "left-of", "right-of", "above", "below" }) do
+    local relmenu = {}
+    for j, _name in ipairs(other_outputs) do
+      relmenu[#relmenu + 1] = { _name, function() xrandr.set_relative_pos(co.name, dir, _name) end }
+    end
+    posmenu[#posmenu + 1] = { dir, relmenu }
+  end
+
   local menu = {
     { '&mode', resmenu },
   }
   if co.on then
     menu[#menu + 1] = { '&transform', transmenu }
     menu[#menu + 1] = { '&off', function() xrandr.off(co.name) end }
+    menu[#menu + 1] = { 'po&sition', posmenu }
 
     if not co.primary then
       menu[#menu + 1] = { '&primary', function() xrandr.set_primary(co.name) end }
