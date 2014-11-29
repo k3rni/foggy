@@ -4,6 +4,7 @@ require('luarocks.loader')
 local inspect = require('inspect')
 local xrandr = {}
 local xinerama = {}
+local foggy = {}
 
 function xrandr.parse_transformations(text, assume_normal)
   local rot = { normal = (assume_normal or false), left = false, right = false, inverted = false}
@@ -30,8 +31,9 @@ function xrandr.info()
         maximum = { tonumber(matches[6]), tonumber(matches[7]) } 
       }
     end,
-    ['^(%g+) connected (%S+)%s*(%d+)x(%d+)+(%d+)+(%d+)([^%(]*)%(([%a%s]+)%) (%d+)mm x (%d+)mm$'] = function(matches)
+    ['^(%g+) connected ([%S]-)%s*(%d+)x(%d+)+(%d+)+(%d+)([^%(]*)%(([%a%s]+)%) (%d+)mm x (%d+)mm$'] = function(matches)
       current_output = {
+        name = matches[1],
         resolution = { tonumber(matches[3]), tonumber(matches[4]) },
         offset = { tonumber(matches[5]), tonumber(matches[6]) },
         transformations = xrandr.parse_transformations(matches[7]),
@@ -73,7 +75,6 @@ function xrandr.info()
       if #res > 0 then
         table.remove(res, 1)
         table.remove(res, 1)
-        print(line)
         func(res)
         break
       end
@@ -94,16 +95,12 @@ function xinerama.info()
   }
   local fp = io.popen('xdpyinfo -ext XINERAMA')
   for line in fp:lines() do
-    -- print(line)
     for pat, func in pairs(pats) do
-      -- print('trying pat ' .. pat)
       local res 
       res = {line:find(pat)}
-      -- print(inspect(res))
       if #res > 0 then
         table.remove(res, 1)
         table.remove(res, 1)
-        print(line)
         func(res)
         break
       end
@@ -112,6 +109,34 @@ function xinerama.info()
   return info
 end
 
+function foggy.screen_menu(current_screen)
+  local xinerama = xinerama.info()
+  local xrandr = xrandr.info()
+  -- awesome always uses xinerama screen order, but 1-numbered
+  local xs = xinerama.heads[tostring(current_screen - 1)]
+  -- horribly wrong on advanced setups:
+  -- the current xrandr output is the one that matches current screen's resolution + offset
+  local co = nil
+  for name, output in pairs(xrandr.outputs) do
+    if output.connected then
+      if (output.resolution[0] == xs.resolution[0]) and (output.resolution[1] == xs.resolution[1])
+        and (output.offset[0] == xs.offset[0] and output.offset[1] == xs.offset[1]) then
+        co = output 
+      end
+    end
+  end
 
-local v = xinerama.info()
+  local menu = {}
+  -- TODO
+  -- 1. submenu resolutions
+  -- 2. submenu transformacji
+  -- 3. off
+  -- 4. pozostałe outputy
+end
+
+function foggy.build_menu(screen_count, current_screen)
+
+end
+
+local v = foggy.build_menu(3, 1)
 print(inspect(v))
