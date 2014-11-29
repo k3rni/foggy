@@ -1,10 +1,13 @@
-#! /usr/bin/env lua
+if not awesome then
+  require('luarocks.loader')
+  local inspect = require('inspect')
+else
+  local inspect = {}
+end
 
-require('luarocks.loader')
-local inspect = require('inspect')
 local xrandr = {}
 local xinerama = {}
-local foggy = {}
+foggy = { mt = {} }
 
 function xrandr.parse_transformations(text, assume_normal)
   local rot = { normal = (assume_normal or false), left = false, right = false, inverted = false}
@@ -59,9 +62,10 @@ function xrandr.info()
         local modes = current_output.modes
         modes[#modes + 1] = mode
         if symbols:find('%*') then
-          current_output.default_mode = mode
-        elseif symbols:find('%+') then
           current_output.current_mode = mode
+        end
+        if symbols:find('%+') then
+          current_output.default_mode = mode
         end
       end
     end
@@ -81,6 +85,26 @@ function xrandr.info()
     end
   end
   return info
+end
+
+function xrandr.set_mode(name, mode)
+  xrandr.cmd(string.format('xrandr --output %s --mode %dx%d --rate %d', name, mode[1], mode[2], mode[3]))
+end
+
+function xrandr.auto_mode(name)
+  xrandr.cmd(string.format('xrandr --output %s --auto', name))
+end
+
+function xrandr.off(name)
+  xrandr.cmd(string.format('xrandr --output %s --off', name))
+end
+
+function xrandr.set_rotate(name, rot)
+  xrandr.cmd(string.format('xrandr --output %s --rotate %s', name, rot))
+end
+
+function xrandr.set_reflect(name, refl)
+  xrandr.cmd(string.format('xrandr --output %s --reflect %s', name, refl))
 end
 
 function xinerama.info()
@@ -109,15 +133,15 @@ function xinerama.info()
   return info
 end
 
-function foggy.screen_menu(current_screen)
+function foggy.get_output(screen_num)
   local xinerama = xinerama.info()
-  local xrandr = xrandr.info()
+  local xrinfo = xrandr.info()
   -- awesome always uses xinerama screen order, but 1-numbered
-  local xs = xinerama.heads[tostring(current_screen - 1)]
-  -- horribly wrong on advanced setups:
+  local xs = xinerama.heads[tostring(screen_num - 1)]
+  -- probably horribly wrong on advanced setups:
   -- the current xrandr output is the one that matches current screen's resolution + offset
   local co = nil
-  for name, output in pairs(xrandr.outputs) do
+  for name, output in pairs(xrinfo.outputs) do
     if output.connected then
       if (output.resolution[0] == xs.resolution[0]) and (output.resolution[1] == xs.resolution[1])
         and (output.offset[0] == xs.offset[0] and output.offset[1] == xs.offset[1]) then
@@ -125,18 +149,90 @@ function foggy.screen_menu(current_screen)
       end
     end
   end
+  return co
+end
 
-  local menu = {}
-  -- TODO
-  -- 1. submenu resolutions
-  -- 2. submenu transformacji
-  -- 3. off
-  -- 4. pozostałe outputy
+function foggy.screen_menu(current_screen, add_output_name)
+  local add_output_name = add_output_name or false
+  local xrinfo = xrandr.info()
+  local co = foggy.get_output(current_screen)
+
+  local resmenu = { { '&auto', function() xrandr.auto_mode(co.name) end } }
+  for i, mode in ipairs(co.modes) do
+    local prefix = ' '
+    local suffix = ''
+    if mode == co.current_mode then
+      prefix = '✓'
+    end
+    if mode == co.default_mode then
+      suffix = ' *'
+    end
+    resmenu[#resmenu + 1] = { string.format('%s%dx%d@%2.0f%s', prefix, mode[1], mode[2], mode[3], suffix), function() xrandr.set_mode(co.name, mode) end }
+  end
+
+  local transmenu = {}
+  local at = co.available_transformations
+  local ct = co.transformations
+
+  for op, available in pairs(at.rotations) do
+    if available then
+      local flags = ''
+      if ct.rotations[op] then
+        flags = ' ✓'
+      end
+      transmenu[#transmenu + 1] = { string.format('%s%s', op, flags), function() xrandr.set_rotate(co.name, op) end }
+    end
+  end
+
+  for op, available in pairs(at.reflections) do
+    if available then
+      local flags = ''
+      if ct.reflections[op] then
+        flags = ' ✓'
+      end
+      transmenu[#transmenu + 1] = { string.format('%s%s', op, flags), function() xrandr.set_reflect(co.name, op) end }
+    end
+  end
+
+  local menu = {
+    { '&mode', resmenu },
+    { '&transform', transmenu },
+    { '&off', function() xrandr.off(co.name) end }
+  }
+  if not co.primary then
+    table.insert(menu, 3, { '&primary', function() xrandr.set_primary(co.name) end })
+  end
+
+  if add_output_name then
+    table.insert(menu, 1, { '[' .. co.name .. ']' , nil })
+  end
+
+  return menu
 end
 
 function foggy.build_menu(screen_count, current_screen)
-
+  local menu = foggy.screen_menu(current_screen, true)
+  for i = 1, screen_count do
+    if i ~= current_screen then
+      menu[#menu + 1] = { foggy.get_output(i).name, foggy.screen_menu(i, false) }
+    end
+  end
+  return menu
 end
 
-local v = foggy.build_menu(3, 1)
-print(inspect(v))
+if awesome then
+  local awful = require('awful')
+  xrandr.cmd = awful.util.spawn_with_shell
+  function foggy.menu(current_screen)
+    local current_screen = mouse.screen
+    local menu = foggy.build_menu(screen.count(), current_screen)
+    awful.menu(menu):show()
+  end
+  function foggy.mt:__call(...)
+      return foggy.menu(...)
+  end
+  return setmetatable(foggy, foggy.mt)
+else
+  local v = foggy.build_menu(3, 1)
+  print(inspect(v))
+end
