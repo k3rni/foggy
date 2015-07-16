@@ -1,10 +1,14 @@
 local awful = require('awful')
 local setmetatable = setmetatable
+local cmd = awful.util.spawn_with_shell
 
 local xrandr = { 
   _NAME = "foggy.xrandr",
-  cmd = awful.util.spawn_with_shell
 }
+
+function printf(format, ...)
+  print(string.format(format, ...))
+end
 
 function xrandr.parse_transformations(text, assume_normal)
   local rot = { normal = (assume_normal or false), left = false, right = false, inverted = false}
@@ -23,15 +27,18 @@ end
 function xrandr.info()
   local info = { screens = {}, outputs = {} }
   local current_output
+  local last_property
   local pats = { 
     ['^Screen (%d+): minimum (%d+) x (%d+), current (%d+) x (%d+), maximum (%d+) x (%d+)$'] = function(matches)
+      -- X screens. Usually just one, when used with Xinerama
       info.screens[tonumber(matches[1])] = { 
         minimum = { tonumber(matches[2]), tonumber(matches[3]) },
         resolution = { tonumber(matches[4]), tonumber(matches[5]) },
         maximum = { tonumber(matches[6]), tonumber(matches[7]) } 
       }
     end,
-    ['^(%a+) connected ([%S]-)%s*(%d+)x(%d+)+(%d+)+(%d+)([^%(]*)%(([%a%s]+)%) (%d+)mm x (%d+)mm$'] = function(matches)
+    ['^([%a%d]+) connected ([%S]-)%s*(%d+)x(%d+)+(%d+)+(%d+)(%s*)%(([%a%s]+)%) (%d+)mm x (%d+)mm$'] = function(matches)
+      -- Match connected and active outputs
       current_output = {
         name = matches[1],
 
@@ -43,12 +50,13 @@ function xrandr.info()
         connected = true,
         on = true,
         primary = (matches[2] == 'primary'),
-        modes = {}
+        modes = {},
+        properties = {}
       }
       info.outputs[matches[1]] = current_output
     end,
-    ['^(%g+) connected %(([%a%s]+)%)$'] = function(matches)
-      -- connected but off
+    ['^([%a%d]+) connected %(([%a%s]+)%)$'] = function(matches)
+      -- Match outputs that are connected but disabled
       current_output = {
         name = matches[1],
         available_transformations = xrandr.parse_transformations(matches[2], false),
@@ -59,13 +67,15 @@ function xrandr.info()
       }
       info.outputs[matches[1]] = current_output
     end,
-    ['^(%g+) disconnected %(([%a%s]+)%)$'] = function(matches)
+    ['^([%a%d]+) disconnected %(([%a%s]+)%)$'] = function(matches)
+      -- Match disconnected outputs
       info.outputs[matches[1]] = {
         available_transformations = xrandr.parse_transformations(matches[2], false),
         connected = false, on = false
       }
     end,
-    ['^%s+(%d+)x(%d+)%s+(.+)$'] = function(matches)
+    ['^%s%s%s(%d+)x(%d+)%s+(.+)$'] = function(matches)
+      -- Match modelines. Only care about resolution and refresh.
       local w = tonumber(matches[1])
       local h = tonumber(matches[2])
       for refresh, symbols in matches[3]:gmatch('([%d.]+)(..)') do
@@ -79,15 +89,43 @@ function xrandr.info()
           current_output.default_mode = mode
         end
       end
+    end,
+    ['^\t(.+):%s+(.+)%s+$'] = function(matches)
+      -- Match properties, which are rather freeform
+      last_property = matches[1]
+      local properties = current_output.properties
+      properties[last_property] = { value = matches[2] }
+    end,
+    ['^\t\tsupported:%s+(.+)$'] = function(matches)
+      -- Match supported property values, freeform but comma separated
+      -- Won't match EDID dump block
+      if last_property ~= nil then 
+        local prop = current_output.properties[last_property]
+        local supported = { }
+        for word in matches[1]:gmatch('([^,]+),?%s?') do
+          supported[#supported + 1] = word
+        end
+        prop.supported = supported
+      end
+    end,
+    ['^\t\trange:%s+%((%d+), (%d+)%)$'] = function(matches)
+      -- Match ranged property values, e.g. brightness
+      if last_property ~= nil then
+        local prop = current_output.properties[last_property]
+        local range = { tonumber(matches[1]), tonumber(matches[2]) }
+        prop.range = range
+      end
     end
   }
 
-  local fp = io.popen('xrandr --query', 'r')
+  local fp = io.popen('xrandr --query --prop', 'r')
   for line in fp:lines() do
+    print(line)
     for pat, func in pairs(pats) do
       local res 
       res = {line:find(pat)}
       if #res > 0 then
+        printf('Matched %s', pat)
         table.remove(res, 1)
         table.remove(res, 1)
         func(res)
@@ -99,31 +137,35 @@ function xrandr.info()
 end
 
 function xrandr.set_mode(name, mode)
-  xrandr.cmd(string.format('xrandr --output %s --mode %dx%d --rate %d', name, mode[1], mode[2], mode[3]))
+  cmd(string.format('xrandr --output %s --mode %dx%d --rate %d', name, mode[1], mode[2], mode[3]))
 end
 
 function xrandr.auto_mode(name)
-  xrandr.cmd(string.format('xrandr --output %s --auto', name))
+  cmd(string.format('xrandr --output %s --auto', name))
 end
 
 function xrandr.off(name)
-  xrandr.cmd(string.format('xrandr --output %s --off', name))
+  cmd(string.format('xrandr --output %s --off', name))
 end
 
 function xrandr.set_rotate(name, rot)
-  xrandr.cmd(string.format('xrandr --output %s --rotate %s', name, rot))
+  cmd(string.format('xrandr --output %s --rotate %s', name, rot))
 end
 
 function xrandr.set_reflect(name, refl)
-  xrandr.cmd(string.format('xrandr --output %s --reflect %s', name, refl))
+  cmd(string.format('xrandr --output %s --reflect %s', name, refl))
 end
 
 function xrandr.set_relative_pos(name, relation, other)
-  xrandr.cmd(string.format('xrandr --output %s --%s %s', name, relation, other))
+  cmd(string.format('xrandr --output %s --%s %s', name, relation, other))
 end
 
 function xrandr.set_primary(name)
-  xrandr.cmd(string.format('xrandr --output %s --primary', name))
+  cmd(string.format('xrandr --output %s --primary', name))
+end
+
+function xrandr.set_property(name, prop, value)
+  cmd(string.format("xrandr --display %s --set %s '%s'", name, prop, value))
 end
 
 function xrandr.identify_outputs()
