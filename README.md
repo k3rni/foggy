@@ -9,6 +9,7 @@ When foggy is invoked, it displays a popup menu that allows you to manipulate di
 * rotations and reflections
 * modesetting, restricted to XRandR-provided modes
 * turning a display on and off
+* *NEW* backlight, if supported by that particular screen and XRandR
 
 # Installation
 
