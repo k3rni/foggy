@@ -11,6 +11,11 @@ When foggy is invoked, it displays a popup menu that allows you to manipulate di
 * turning a display on and off
 * *NEW* backlight, if supported by that particular screen and XRandR
 
+# Planned features
+
+* additional display properties besides backlight: typically scaling mode, aspect ratio and audio output toggling
+* convenient bindable functions to adjust brightness
+
 # Installation
 
 ## Standalone
