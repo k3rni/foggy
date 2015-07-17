@@ -34,7 +34,7 @@ function build_transformation_menu(co)
       if ct.rotations[op] then
         flags = ' ✓'
       end
-      transmenu[#transmenu + 1] = { string.format('rotate %s%s', op, flags), function() xrandr.set_rotate(co.name, op) end }
+      transmenu[#transmenu + 1] = { string.format('rotate %s%s', op, flags), function() xrandr.actions.set_rotate(co.name, op) end }
     end
   end
 
@@ -44,7 +44,7 @@ function build_transformation_menu(co)
       if ct.reflections[op] then
         flags = ' ✓'
       end
-      transmenu[#transmenu + 1] = { string.format('reflect %s%s', op, flags), function() xrandr.set_reflect(co.name, op) end }
+      transmenu[#transmenu + 1] = { string.format('reflect %s%s', op, flags), function() xrandr.actions.set_reflect(co.name, op) end }
     end
   end
 
@@ -52,7 +52,7 @@ function build_transformation_menu(co)
 end
 
 function build_resolution_menu(co)
-  local resmenu = { { '&auto', function() xrandr.auto_mode(co.name) end } }
+  local resmenu = { { '&auto', function() xrandr.actions.auto_mode(co.name) end } }
   for i, mode in ipairs(co.modes) do
     local prefix = ' '
     local suffix = ''
@@ -62,7 +62,7 @@ function build_resolution_menu(co)
     if mode == co.default_mode then
       suffix = ' *'
     end
-    resmenu[#resmenu + 1] = { string.format('%s%dx%d@%2.0f%s', prefix, mode[1], mode[2], mode[3], suffix), function() xrandr.set_mode(co.name, mode) end }
+    resmenu[#resmenu + 1] = { string.format('%s%dx%d@%2.0f%s', prefix, mode[1], mode[2], mode[3], suffix), function() xrandr.actions.set_mode(co.name, mode) end }
   end
 
   return resmenu
@@ -80,7 +80,7 @@ function build_position_menu(co)
   for i, dir in ipairs({ "left-of", "right-of", "above", "below", 'same-as' }) do
     local relmenu = {}
     for j, _name in ipairs(other_outputs) do
-      relmenu[#relmenu + 1] = { _name, function() xrandr.set_relative_pos(co.name, dir, _name) end }
+      relmenu[#relmenu + 1] = { _name, function() xrandr.actions.set_relative_pos(co.name, dir, _name) end }
     end
     posmenu[#posmenu + 1] = { dir, relmenu }
   end
@@ -92,16 +92,20 @@ function screen_menu(co, add_output_name)
   local add_output_name = add_output_name or false
   local co = co
 
-  local mainmenu = {
-    { '&mode', build_resolution_menu(co) },
-  }
+  local mainmenu = { }
   if co.on then
+    local blmenu = build_backlight_menu(co)
+    if blmenu then
+      mainmenu[#mainmenu + 1] = { '&backlight', blmenu }
+    end
+
+    mainmenu[#mainmenu + 1] = { '&mode', build_resolution_menu(co) }
     mainmenu[#mainmenu + 1] = { '&transform', build_transformation_menu(co) }
-    mainmenu[#mainmenu + 1] = { '&off', function() xrandr.off(co.name) end }
+    mainmenu[#mainmenu + 1] = { '&off', function() xrandr.actions.off(co.name) end }
     mainmenu[#mainmenu + 1] = { 'po&sition', build_position_menu(co) }
 
     if not co.primary then
-      mainmenu[#mainmenu + 1] = { '&primary', function() xrandr.set_primary(co.name) end }
+      mainmenu[#mainmenu + 1] = { '&primary', function() xrandr.actions.set_primary(co.name) end }
     end
   end
 
@@ -109,7 +113,7 @@ function screen_menu(co, add_output_name)
     table.insert(mainmenu, 1, { '[' .. co.name .. ']' , nil })
   end
 
-  mainmenu[#mainmenu + 1] = { 'i&dentify', function() xrandr.identify_outputs() end }
+  mainmenu[#mainmenu + 1] = { 'i&dentify', function() xrandr.actions.identify_outputs() end }
   
   return mainmenu
 end
@@ -135,11 +139,39 @@ function build_menu(current_screen)
   return scrn_menu
 end
 
+function build_backlight_menu(current_output)
+  local thisout = current_output
+  -- NOTE: how does this property name vary across drivers?
+  local backlight = thisout.properties.BACKLIGHT
+  if backlight == nil then
+    return nil
+  end
+
+  local low = backlight.range[1]
+  local high = backlight.range[2]
+
+  local blmenu = { }
+  for pct = 100, 0, -10 do
+    local v = low + (high - low) * (pct / 100.0)
+    blmenu[#blmenu + 1] = { pct .. '%', function() xrandr.actions.set_backlight(thisout.name, math.floor(v)) end }
+  end
+
+  return blmenu
+end
+
 
 function menu.menu(current_screen)
   local current_screen = current_screen or mouse.screen
   local thismenu = build_menu(current_screen)
   awful.menu(thismenu):show()
+end
+
+function menu.backlight(current_screen)
+  local current_screen = current_screen or mouse.screen
+  local amenu = build_brightness_menu(current_screen)
+  if amenu ~= nil then
+    awful.menu(amenu):show()
+  end
 end
 
 function menu.mt:__call(...)

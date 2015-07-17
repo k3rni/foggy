@@ -4,13 +4,14 @@ local cmd = awful.util.spawn_with_shell
 
 local xrandr = { 
   _NAME = "foggy.xrandr",
+  actions = {}
 }
 
 function printf(format, ...)
   print(string.format(format, ...))
 end
 
-function xrandr.parse_transformations(text, assume_normal)
+function parse_transformations(text, assume_normal)
   local rot = { normal = (assume_normal or false), left = false, right = false, inverted = false}
   local refl = { x = false, y = false, normal = (assume_normal or false) }
   for word in text:gmatch("(%w+)") do
@@ -44,8 +45,8 @@ function xrandr.info()
 
         resolution = { tonumber(matches[3]), tonumber(matches[4]) },
         offset = { tonumber(matches[5]), tonumber(matches[6]) },
-        transformations = xrandr.parse_transformations(matches[7]),
-        available_transformations = xrandr.parse_transformations(matches[8], false),
+        transformations = parse_transformations(matches[7]),
+        available_transformations = parse_transformations(matches[8], false),
         physical_size = { tonumber(matches[9]), tonumber(matches[10]) },
         connected = true,
         on = true,
@@ -59,8 +60,8 @@ function xrandr.info()
       -- Match outputs that are connected but disabled
       current_output = {
         name = matches[1],
-        available_transformations = xrandr.parse_transformations(matches[2], false),
-        transformations = xrandr.parse_transformations(''),
+        available_transformations = parse_transformations(matches[2], false),
+        transformations = parse_transformations(''),
         modes = {},
         connected = true,
         on = false
@@ -70,7 +71,7 @@ function xrandr.info()
     ['^([%a%d]+) disconnected %(([%a%s]+)%)$'] = function(matches)
       -- Match disconnected outputs
       info.outputs[matches[1]] = {
-        available_transformations = xrandr.parse_transformations(matches[2], false),
+        available_transformations = parse_transformations(matches[2], false),
         connected = false, on = false
       }
     end,
@@ -120,12 +121,10 @@ function xrandr.info()
 
   local fp = io.popen('xrandr --query --prop', 'r')
   for line in fp:lines() do
-    print(line)
     for pat, func in pairs(pats) do
       local res 
       res = {line:find(pat)}
       if #res > 0 then
-        printf('Matched %s', pat)
         table.remove(res, 1)
         table.remove(res, 1)
         func(res)
@@ -136,39 +135,43 @@ function xrandr.info()
   return info
 end
 
-function xrandr.set_mode(name, mode)
+function xrandr.actions.set_mode(name, mode)
   cmd(string.format('xrandr --output %s --mode %dx%d --rate %d', name, mode[1], mode[2], mode[3]))
 end
 
-function xrandr.auto_mode(name)
+function xrandr.actions.auto_mode(name)
   cmd(string.format('xrandr --output %s --auto', name))
 end
 
-function xrandr.off(name)
+function xrandr.actions.off(name)
   cmd(string.format('xrandr --output %s --off', name))
 end
 
-function xrandr.set_rotate(name, rot)
+function xrandr.actions.set_rotate(name, rot)
   cmd(string.format('xrandr --output %s --rotate %s', name, rot))
 end
 
-function xrandr.set_reflect(name, refl)
+function xrandr.actions.set_reflect(name, refl)
   cmd(string.format('xrandr --output %s --reflect %s', name, refl))
 end
 
-function xrandr.set_relative_pos(name, relation, other)
+function xrandr.actions.set_relative_pos(name, relation, other)
   cmd(string.format('xrandr --output %s --%s %s', name, relation, other))
 end
 
-function xrandr.set_primary(name)
+function xrandr.actions.set_primary(name)
   cmd(string.format('xrandr --output %s --primary', name))
 end
 
-function xrandr.set_property(name, prop, value)
-  cmd(string.format("xrandr --display %s --set %s '%s'", name, prop, value))
+function xrandr.actions.set_property(name, prop, value)
+  cmd(string.format("xrandr --output %s --set %s '%s'", name, prop, value))
 end
 
-function xrandr.identify_outputs()
+function xrandr.actions.set_backlight(name, value)
+  xrandr.actions.set_property(name, 'BACKLIGHT', value)
+end
+
+function xrandr.actions.identify_outputs()
   local wibox = require("wibox")
   local naughty = require('naughty')
   for name, output in pairs(xrandr.info().outputs) do
