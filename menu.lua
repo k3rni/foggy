@@ -4,8 +4,7 @@ local awful = require('awful')
 
 local menu = { mt = {}, _NAME = "foggy.menu" }
 
--- move to util?
-function menu.get_output(screen_num)
+function get_output(screen_num)
   local xinerama = xinerama.info()
   local xrinfo = xrandr.info()
   -- awesome always uses xinerama screen order, but 1-numbered
@@ -24,23 +23,7 @@ function menu.get_output(screen_num)
   return co
 end
 
-function screen_menu(co, add_output_name)
-  local add_output_name = add_output_name or false
-  local co = co
-
-  local resmenu = { { '&auto', function() xrandr.auto_mode(co.name) end } }
-  for i, mode in ipairs(co.modes) do
-    local prefix = ' '
-    local suffix = ''
-    if mode == co.current_mode then
-      prefix = '✓'
-    end
-    if mode == co.default_mode then
-      suffix = ' *'
-    end
-    resmenu[#resmenu + 1] = { string.format('%s%dx%d@%2.0f%s', prefix, mode[1], mode[2], mode[3], suffix), function() xrandr.set_mode(co.name, mode) end }
-  end
-
+function build_transformation_menu(co)
   local transmenu = {}
   local at = co.available_transformations
   local ct = co.transformations
@@ -65,6 +48,27 @@ function screen_menu(co, add_output_name)
     end
   end
 
+  return transmenu
+end
+
+function build_resolution_menu(co)
+  local resmenu = { { '&auto', function() xrandr.auto_mode(co.name) end } }
+  for i, mode in ipairs(co.modes) do
+    local prefix = ' '
+    local suffix = ''
+    if mode == co.current_mode then
+      prefix = '✓'
+    end
+    if mode == co.default_mode then
+      suffix = ' *'
+    end
+    resmenu[#resmenu + 1] = { string.format('%s%dx%d@%2.0f%s', prefix, mode[1], mode[2], mode[3], suffix), function() xrandr.set_mode(co.name, mode) end }
+  end
+
+  return resmenu
+end
+
+function build_position_menu(co)
   local posmenu = {}
   local other_outputs = {}
   for name, _out in pairs(xrandr.info().outputs) do
@@ -81,13 +85,20 @@ function screen_menu(co, add_output_name)
     posmenu[#posmenu + 1] = { dir, relmenu }
   end
 
+  return posmenu
+end
+
+function screen_menu(co, add_output_name)
+  local add_output_name = add_output_name or false
+  local co = co
+
   local mainmenu = {
-    { '&mode', resmenu },
+    { '&mode', build_resolution_menu(co) },
   }
   if co.on then
-    mainmenu[#mainmenu + 1] = { '&transform', transmenu }
+    mainmenu[#mainmenu + 1] = { '&transform', build_transformation_menu(co) }
     mainmenu[#mainmenu + 1] = { '&off', function() xrandr.off(co.name) end }
-    mainmenu[#mainmenu + 1] = { 'po&sition', posmenu }
+    mainmenu[#mainmenu + 1] = { 'po&sition', build_position_menu(co) }
 
     if not co.primary then
       mainmenu[#mainmenu + 1] = { '&primary', function() xrandr.set_primary(co.name) end }
@@ -105,7 +116,7 @@ end
 
 function build_menu(current_screen)
   local outputs = xrandr.info().outputs
-  local thisout = menu.get_output(current_screen)
+  local thisout = get_output(current_screen)
   local scrn_menu = screen_menu(thisout, true)
   local visible = { [thisout.name] = true }
   -- iterate over outputs, not screens
