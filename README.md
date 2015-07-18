@@ -57,7 +57,7 @@ To add a keybinding, edit rc.lua and add something like the following to the glo
 
 If the brightness keys don't work, it might be an ACPI issue, not awesome's. In that case rebind to a convenient combination, such as modkey + the function keys that show brightness symbols.
 
-Note: This'll only adjust backlight for whatever screen the cursor is currently in. If you need to adjust it across all screens, either call `inc_backlight` more than once, passing a screen number in the second parameter; or use `xbacklight` instead.
+Note: This'll only adjust backlight for whatever screen the cursor is currently in. If you need to adjust it across all screens, either call `inc_backlight` more than once, passing a screen number in the second parameter; or use the standalone `xbacklight` command instead.
 
 ## Widgets (do-it-yourself style)
 
