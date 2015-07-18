@@ -11,7 +11,6 @@ When foggy is invoked, it displays a popup menu that allows you to manipulate di
 * turning a display on and off
 * backlight, if supported by that particular screen and XRandR
 * additional display properties besides backlight: typically scaling mode, aspect ratio and audio output toggling
-* convenient bindable function to adjust brightness
 
 # Installation
 
@@ -30,7 +29,7 @@ The instructions assume you went with the git-clone route. Go to .config/awesome
   git submodule add https://github.com/k3rni/foggy
 ```
 
-## Basic usage
+# Usage
 
 Edit your rc.lua, and add the following somewhere with the other require lines:
 
@@ -38,7 +37,7 @@ Edit your rc.lua, and add the following somewhere with the other require lines:
 local foggy = require('foggy')
 ```
 
-# Keys 
+## Keys 
 
 Restart your DE, or call awesome's Lua prompt (default: <kbd>Win + X</kbd>) and type <code>awesome.restart()</code>.
 Now you can invoke Foggy by calling the Lua prompt and typing <code>foggy.menu()</code>.
@@ -60,7 +59,7 @@ If the brightness keys don't work, it might be an ACPI issue, not awesome's. In 
 
 Note: This'll only adjust backlight for whatever screen the cursor is currently in. If you need to adjust it across all screens, either call `inc_backlight` more than once, passing a screen number in the second parameter; or use `xbacklight` instead.
 
-# Widgets
+## Widgets (do-it-yourself style)
 
 To add a widget, add something similar to where the widget box is built. Replace the icon path, and background color if necessary (or just add the imagebox
 directly, without the background).
