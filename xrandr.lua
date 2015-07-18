@@ -1,5 +1,4 @@
 local awful = require('awful')
-local setmetatable = setmetatable
 local cmd = awful.util.spawn_with_shell
 
 local xrandr = { 
@@ -7,11 +6,11 @@ local xrandr = {
   actions = {}
 }
 
-function printf(format, ...)
+local function printf(format, ...)
   print(string.format(format, ...))
 end
 
-function parse_transformations(text, assume_normal)
+local function parse_transformations(text, assume_normal)
   local rot = { normal = (assume_normal or false), left = false, right = false, inverted = false}
   local refl = { x = false, y = false, normal = (assume_normal or false) }
   for word in text:gmatch("(%w+)") do
@@ -164,7 +163,7 @@ function xrandr.actions.set_primary(name)
 end
 
 function xrandr.actions.set_property(name, prop, value)
-  cmd(string.format("xrandr --output %s --set %s '%s'", name, prop, value))
+  cmd(string.format("xrandr --output %s --set '%s' '%s'", name, prop, value))
 end
 
 function xrandr.actions.set_backlight(name, value)
@@ -173,7 +172,7 @@ end
 
 function xrandr.actions.identify_outputs()
   local wibox = require("wibox")
-  local naughty = require('naughty')
+
   for name, output in pairs(xrandr.info().outputs) do
     if output.connected and output.on then
       local textbox = wibox.widget.textbox()

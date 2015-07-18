@@ -107,6 +107,7 @@ function screen_menu(co, add_output_name)
     if not co.primary then
       mainmenu[#mainmenu + 1] = { '&primary', function() xrandr.actions.set_primary(co.name) end }
     end
+    mainmenu[#mainmenu + 1] = { 'p&roperties', build_properties_menu(co) }
   end
 
   if add_output_name then
@@ -159,6 +160,34 @@ function build_backlight_menu(current_output)
   return blmenu
 end
 
+function build_properties_menu(current_output)
+  local thisout = current_output
+  local pmenu = {}
+  
+  for propname, propdef in pairs(thisout.properties) do
+    if propname:upper() ~= "BACKLIGHT" and (propdef.supported or propdef.range) then
+      local submenu = { }
+      if propdef.supported then
+        for i, value in ipairs(propdef.supported) do
+          submenu[#submenu + 1] = { value, function() xrandr.actions.set_property(thisout.name, propname, value) end }
+        end
+      elseif propdef.range then
+        local low = propdef.range[1]
+        local high = propdef.range[2]
+
+        for pct = 100, 0, -10 do
+          local v = low + (high - low) * (pct / 100.0)
+          submenu[#submenu + 1] = { pct .. '%', function() xrandr.actions.set_property(thisout.name, propname, math.floor(v)) end }
+        end
+      end
+
+      pmenu[#pmenu + 1] = { propname, submenu }
+    end
+  end
+
+  return pmenu
+end
+
 
 function menu.menu(current_screen)
   local current_screen = current_screen or mouse.screen
@@ -177,5 +206,7 @@ end
 function menu.mt:__call(...)
   return menu.menu(...)
 end
+
+menu.get_output = get_output
 
 return setmetatable(menu, menu.mt)
