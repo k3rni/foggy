@@ -37,7 +37,7 @@ function xrandr.info()
         maximum = { tonumber(matches[6]), tonumber(matches[7]) } 
       }
     end,
-    ['^([%a%d]+) connected ([%S]-)%s*(%d+)x(%d+)+(%d+)+(%d+)(%s*)%(([%a%s]+)%) (%d+)mm x (%d+)mm$'] = function(matches)
+    ['^([%a%d]+) connected ([%S]-)%s*(%d+)x(%d+)+(%d+)+(%d+)%s*(.-)%(([%a%s]+)%) (%d+)mm x (%d+)mm$'] = function(matches)
       -- Match connected and active outputs
       current_output = {
         name = matches[1],
