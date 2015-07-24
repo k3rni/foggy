@@ -63,7 +63,8 @@ function xrandr.info()
         transformations = parse_transformations(''),
         modes = {},
         connected = true,
-        on = false
+        on = false,
+        properties = {}
       }
       info.outputs[matches[1]] = current_output
     end,

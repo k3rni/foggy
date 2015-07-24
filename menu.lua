@@ -4,11 +4,11 @@ local awful = require('awful')
 
 local menu = { mt = {}, _NAME = "foggy.menu" }
 
-function get_output(screen_num)
-  local xinerama = xinerama.info()
+local function get_output(screen_num)
+  local heads = xinerama.info().heads
   local xrinfo = xrandr.info()
   -- awesome always uses xinerama screen order, but 1-numbered
-  local xs = xinerama.heads[tostring(screen_num - 1)]
+  local xs = heads[tostring(screen_num - 1)]
   -- probably horribly wrong on advanced setups:
   -- the current xrandr output is the one that matches current screen's resolution + offset
   local co = nil
@@ -23,7 +23,7 @@ function get_output(screen_num)
   return co
 end
 
-function build_transformation_menu(co)
+local function build_transformation_menu(co)
   local transmenu = {}
   local at = co.available_transformations
   local ct = co.transformations
@@ -51,7 +51,7 @@ function build_transformation_menu(co)
   return transmenu
 end
 
-function build_resolution_menu(co)
+local function build_resolution_menu(co)
   local resmenu = { { '&auto', function() xrandr.actions.auto_mode(co.name) end } }
   for i, mode in ipairs(co.modes) do
     local prefix = ' '
@@ -68,7 +68,7 @@ function build_resolution_menu(co)
   return resmenu
 end
 
-function build_position_menu(co)
+local function build_position_menu(co)
   local posmenu = {}
   local other_outputs = {}
   for name, _out in pairs(xrandr.info().outputs) do
@@ -77,10 +77,10 @@ function build_position_menu(co)
     end
   end
 
-  for i, dir in ipairs({ "left-of", "right-of", "above", "below", 'same-as' }) do
+  for _, dir in ipairs({ "left-of", "right-of", "above", "below", 'same-as' }) do
     local relmenu = {}
-    for j, _name in ipairs(other_outputs) do
-      relmenu[#relmenu + 1] = { _name, function() xrandr.actions.set_relative_pos(co.name, dir, _name) end }
+    for _, name in ipairs(other_outputs) do
+      relmenu[#relmenu + 1] = { name, function() xrandr.actions.set_relative_pos(co.name, dir, name) end }
     end
     posmenu[#posmenu + 1] = { dir, relmenu }
   end
@@ -88,9 +88,56 @@ function build_position_menu(co)
   return posmenu
 end
 
-function screen_menu(co, add_output_name)
-  local add_output_name = add_output_name or false
-  local co = co
+local function build_backlight_menu(current_output)
+  local thisout = current_output
+  -- NOTE: how does this property name vary across drivers?
+  local backlight = thisout.properties.BACKLIGHT
+  if backlight == nil then
+    return nil
+  end
+
+  local low = backlight.range[1]
+  local high = backlight.range[2]
+
+  local blmenu = { }
+  for pct = 100, 0, -10 do
+    local v = low + (high - low) * (pct / 100.0)
+    blmenu[#blmenu + 1] = { pct .. '%', function() xrandr.actions.set_backlight(thisout.name, math.floor(v)) end }
+  end
+
+  return blmenu
+end
+
+local function build_properties_menu(current_output)
+  local thisout = current_output
+  local pmenu = {}
+  
+  for propname, propdef in pairs(thisout.properties) do
+    if propname:upper() ~= "BACKLIGHT" and (propdef.supported or propdef.range) then
+      local submenu = { }
+      if propdef.supported then
+        for _, value in ipairs(propdef.supported) do
+          submenu[#submenu + 1] = { value, function() xrandr.actions.set_property(thisout.name, propname, value) end }
+        end
+      elseif propdef.range then
+        local low = propdef.range[1]
+        local high = propdef.range[2]
+
+        for pct = 100, 0, -10 do
+          local v = low + (high - low) * (pct / 100.0)
+          submenu[#submenu + 1] = { pct .. '%', function() xrandr.actions.set_property(thisout.name, propname, math.floor(v)) end }
+        end
+      end
+
+      pmenu[#pmenu + 1] = { propname, submenu }
+    end
+  end
+
+  return pmenu
+end
+
+local function screen_menu(co, add_output_name)
+  add_output_name = add_output_name or false
 
   local mainmenu = { }
   if co.on then
@@ -108,6 +155,8 @@ function screen_menu(co, add_output_name)
       mainmenu[#mainmenu + 1] = { '&primary', function() xrandr.actions.set_primary(co.name) end }
     end
     mainmenu[#mainmenu + 1] = { 'p&roperties', build_properties_menu(co) }
+  else
+    mainmenu[#mainmenu + 1] = { '&on', function() xrandr.actions.auto_mode(co.name) end }
   end
 
   if add_output_name then
@@ -119,7 +168,7 @@ function screen_menu(co, add_output_name)
   return mainmenu
 end
 
-function build_menu(current_screen)
+local function build_menu(current_screen)
   local outputs = xrandr.info().outputs
   local thisout = get_output(current_screen)
   local scrn_menu = screen_menu(thisout, true)
@@ -140,64 +189,16 @@ function build_menu(current_screen)
   return scrn_menu
 end
 
-function build_backlight_menu(current_output)
-  local thisout = current_output
-  -- NOTE: how does this property name vary across drivers?
-  local backlight = thisout.properties.BACKLIGHT
-  if backlight == nil then
-    return nil
-  end
-
-  local low = backlight.range[1]
-  local high = backlight.range[2]
-
-  local blmenu = { }
-  for pct = 100, 0, -10 do
-    local v = low + (high - low) * (pct / 100.0)
-    blmenu[#blmenu + 1] = { pct .. '%', function() xrandr.actions.set_backlight(thisout.name, math.floor(v)) end }
-  end
-
-  return blmenu
-end
-
-function build_properties_menu(current_output)
-  local thisout = current_output
-  local pmenu = {}
-  
-  for propname, propdef in pairs(thisout.properties) do
-    if propname:upper() ~= "BACKLIGHT" and (propdef.supported or propdef.range) then
-      local submenu = { }
-      if propdef.supported then
-        for i, value in ipairs(propdef.supported) do
-          submenu[#submenu + 1] = { value, function() xrandr.actions.set_property(thisout.name, propname, value) end }
-        end
-      elseif propdef.range then
-        local low = propdef.range[1]
-        local high = propdef.range[2]
-
-        for pct = 100, 0, -10 do
-          local v = low + (high - low) * (pct / 100.0)
-          submenu[#submenu + 1] = { pct .. '%', function() xrandr.actions.set_property(thisout.name, propname, math.floor(v)) end }
-        end
-      end
-
-      pmenu[#pmenu + 1] = { propname, submenu }
-    end
-  end
-
-  return pmenu
-end
-
 
 function menu.menu(current_screen)
-  local current_screen = current_screen or mouse.screen
+  current_screen = current_screen or mouse.screen
   local thismenu = build_menu(current_screen)
   awful.menu(thismenu):show()
 end
 
 function menu.backlight(current_screen)
-  local current_screen = current_screen or mouse.screen
-  local amenu = build_brightness_menu(current_screen)
+  current_screen = current_screen or mouse.screen
+  local amenu = build_backlight_menu(current_screen)
   if amenu ~= nil then
     awful.menu(amenu):show()
   end

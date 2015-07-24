@@ -1,5 +1,4 @@
 
-local wrequire = require('foggy.util').wrequire
 local xinerama = {}
 
 function xinerama.info()
@@ -29,4 +28,4 @@ function xinerama.info()
   return info
 end
 
-return setmetatable(xinerama, { __index = wrequire })
+return xinerama
