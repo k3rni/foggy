@@ -1,5 +1,3 @@
-local inspect = require('inspect')
-
 function keys(table)
   local keyset = {}
   for k, v in pairs(table) do
