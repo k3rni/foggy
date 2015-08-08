@@ -1,4 +1,4 @@
-local edid = require('foggy.edid')
+local edid = require('edid')
 local cmd
 
 local status, cmd_fun = pcall(function()
@@ -36,7 +36,7 @@ local function parse_transformations(text, assume_normal)
   return { rotations = rot, reflections = refl }
 end
 
-function xrandr.info()
+function xrandr.info(fp)
   local info = { screens = {}, outputs = {} }
   local current_output
   local last_property
@@ -137,7 +137,7 @@ function xrandr.info()
     end
   }
 
-  local fp = io.popen('xrandr --query --prop', 'r')
+  fp = fp or io.popen('xrandr --query --prop', 'r')
   for line in fp:lines() do
     for pat, func in pairs(pats) do
       local res 
@@ -189,13 +189,14 @@ function xrandr.actions.set_backlight(name, value)
   xrandr.actions.set_property(name, 'BACKLIGHT', value)
 end
 
-function xrandr.actions.identify_outputs()
+function xrandr.actions.identify_outputs(timeout)
+  timeout = timeout or 3
   local wibox = require("wibox")
 
   for name, output in pairs(xrandr.info().outputs) do
     if output.connected and output.on then
       local textbox = wibox.widget.textbox()
-      local box = wibox({fg = '#ffffff', bg = '#000000'})
+      local box = wibox({fg = '#ffffff', bg = '#0000007f'})
       local layout = wibox.layout.fixed.horizontal()
       textbox:set_font('sans 36')
       local text
@@ -215,7 +216,7 @@ function xrandr.actions.identify_outputs()
 
       box.ontop = true
       box.visible = true
-      local tm = timer({timeout=3})
+      local tm = timer({timeout=timeout})
       tm:connect_signal('timeout', function()
         box.visible = false
         tm:stop()
