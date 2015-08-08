@@ -1,5 +1,7 @@
 # foggy
 
+[![Build Status](https://travis-ci.org/k3rni/foggy.svg?branch=master)](https://travis-ci.org/k3rni/foggy)
+
 Foggy manages your multiple screens. It's an extension script for [Awesome](http://awesome.naquadah.org/), a tiling window manager. 
 
 When foggy is invoked, it displays a popup menu that allows you to manipulate display outputs via XRandR. Most XRandR features are supported:
