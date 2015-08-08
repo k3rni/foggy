@@ -1,5 +1,16 @@
-local awful = require('awful')
-local cmd = awful.util.spawn_with_shell
+local cmd
+
+local status, cmd_fun = pcall(function()
+  local awful = require('awful')
+  return awful.util.spawn_with_shell
+end)
+
+if status then
+  cmd = cmd_fun
+else
+  cmd = print
+end
+
 
 local xrandr = { 
   _NAME = "foggy.xrandr",
@@ -37,7 +48,7 @@ function xrandr.info()
         maximum = { tonumber(matches[6]), tonumber(matches[7]) } 
       }
     end,
-    ['^([%a%d]+) connected ([%S]-)%s*(%d+)x(%d+)+(%d+)+(%d+)%s*(.-)%(([%a%s]+)%) (%d+)mm x (%d+)mm$'] = function(matches)
+    ['^([-%a%d]+) connected ([%S]-)%s*(%d+)x(%d+)+(%d+)+(%d+)%s*(.-)%(([%a%s]+)%) (%d+)mm x (%d+)mm$'] = function(matches)
       -- Match connected and active outputs
       current_output = {
         name = matches[1],
@@ -124,7 +135,9 @@ function xrandr.info()
     for pat, func in pairs(pats) do
       local res 
       res = {line:find(pat)}
+      print(line)
       if #res > 0 then
+        print(pat)
         table.remove(res, 1)
         table.remove(res, 1)
         func(res)
