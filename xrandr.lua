@@ -1,3 +1,4 @@
+local edid = require('foggy.edid')
 local cmd
 
 local status, cmd_fun = pcall(function()
@@ -62,11 +63,13 @@ function xrandr.info()
         on = true,
         primary = (matches[2] == 'primary'),
         modes = {},
-        properties = {}
+        properties = {},
+        edid = ''
       }
       info.outputs[matches[1]] = current_output
     end,
-    ['^([%a%d]+) connected %(([%a%s]+)%)$'] = function(matches)
+    ['^([-%a%d]+) connected %(([%a%s]+)%)$'] = function(matches)
+      -- DVI-1 connected (normal left inverted right x axis y axis)
       -- Match outputs that are connected but disabled
       current_output = {
         name = matches[1],
@@ -75,7 +78,8 @@ function xrandr.info()
         modes = {},
         connected = true,
         on = false,
-        properties = {}
+        properties = {},
+        edid = ''
       }
       info.outputs[matches[1]] = current_output
     end,
@@ -110,7 +114,6 @@ function xrandr.info()
     end,
     ['^\t\tsupported:%s+(.+)$'] = function(matches)
       -- Match supported property values, freeform but comma separated
-      -- Won't match EDID dump block
       if last_property ~= nil then 
         local prop = current_output.properties[last_property]
         local supported = { }
@@ -119,6 +122,10 @@ function xrandr.info()
         end
         prop.supported = supported
       end
+    end,
+    ['^\t\t(' .. string.rep('[0-9a-f]', 32) .. ')$'] = function(matches)
+      -- Match EDID block
+      current_output.edid = current_output.edid .. matches[1]
     end,
     ['^\t\trange:%s+%((%d+), (%d+)%)$'] = function(matches)
       -- Match ranged property values, e.g. brightness
@@ -135,9 +142,7 @@ function xrandr.info()
     for pat, func in pairs(pats) do
       local res 
       res = {line:find(pat)}
-      print(line)
       if #res > 0 then
-        print(pat)
         table.remove(res, 1)
         table.remove(res, 1)
         func(res)
@@ -190,10 +195,17 @@ function xrandr.actions.identify_outputs()
   for name, output in pairs(xrandr.info().outputs) do
     if output.connected and output.on then
       local textbox = wibox.widget.textbox()
-      local box = wibox({fg = '#ffffff', bg = '#77777700'})
+      local box = wibox({fg = '#ffffff', bg = '#000000'})
       local layout = wibox.layout.fixed.horizontal()
       textbox:set_font('sans 36')
-      textbox:set_markup(name)
+      local text
+      if output.edid ~= "" then
+        text = name .. "\n" .. edid.monitor_name(output.edid)
+      else
+        text = name
+      end
+      textbox:set_markup(text)
+      textbox:set_align("center")
       layout:add(textbox)
       box:set_widget(layout)
       local w, h = textbox:fit(-1, -1)

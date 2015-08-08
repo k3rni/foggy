@@ -1,6 +1,8 @@
 local xinerama = require('foggy.xinerama')
 local xrandr = require('foggy.xrandr')
 local awful = require('awful')
+local naughty = require('naughty')
+local edid = require('foggy.edid')
 
 local menu = { mt = {}, _NAME = "foggy.menu" }
 
@@ -21,6 +23,14 @@ local function get_output(screen_num)
     end
   end
   return co
+end
+
+local function output_name(co)
+  if co.edid ~= "" then
+    return co.name .. " (" .. edid.monitor_name(co.edid) .. ")"
+  else
+    return co.name
+  end
 end
 
 local function build_transformation_menu(co)
@@ -160,7 +170,7 @@ local function screen_menu(co, add_output_name)
   end
 
   if add_output_name then
-    table.insert(mainmenu, 1, { '[' .. co.name .. ']' , nil })
+    table.insert(mainmenu, 1, { '[' .. output_name(co) .. ']' , nil })
   end
 
   mainmenu[#mainmenu + 1] = { 'i&dentify', function() xrandr.actions.identify_outputs() end }
@@ -177,13 +187,13 @@ local function build_menu(current_screen)
   -- otherwise menu is bugged when cloning
   for name, output in pairs(outputs) do
     if output.connected and output.on and output.name ~= thisout.name then
-      scrn_menu[#scrn_menu + 1] = { name, screen_menu(output, false) }
+      scrn_menu[#scrn_menu + 1] = { output_name(output), screen_menu(output, false) }
     end
   end
   -- add connected but disabled screens
   for name, output in pairs(outputs) do
     if output.connected and (not output.on) and (not visible[name]) then
-      scrn_menu[#scrn_menu + 1] = { name, screen_menu(output, false) }
+      scrn_menu[#scrn_menu + 1] = { output_name(output), screen_menu(output, false) }
     end
   end
   return scrn_menu
@@ -193,7 +203,8 @@ end
 function menu.menu(current_screen)
   current_screen = current_screen or mouse.screen
   local thismenu = build_menu(current_screen)
-  awful.menu(thismenu):show()
+  awful.menu.new({ items = thismenu,
+    theme = { width = 280 }}):show()
 end
 
 function menu.backlight(current_screen)
