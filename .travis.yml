@@ -8,5 +8,5 @@ addons:
 before_script:
   - luarocks --local install busted
 script:
-  - "~/.luarocks/bin/busted *_spec.lua"
+  - "~/.luarocks/bin/busted --helper spec/helper.lua spec/*_spec.lua"
 

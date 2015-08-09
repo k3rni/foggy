@@ -8,7 +8,7 @@ end
 
 describe('foggy.xrandr', function()
   local xrandr = require('xrandr')
-  local fp = io.open('test/3_monitors.txt')
+  local fp = io.open('spec/3_monitors.txt')
   local info = xrandr.info(fp)
 
   it('has one Xinerama screen', function() 
