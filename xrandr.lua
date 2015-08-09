@@ -83,12 +83,15 @@ function xrandr.info(fp)
       }
       info.outputs[matches[1]] = current_output
     end,
-    ['^([%a%d]+) disconnected %(([%a%s]+)%)$'] = function(matches)
+    ['^([-%a%d]+) disconnected %(([%a%s]+)%)$'] = function(matches)
       -- Match disconnected outputs
-      info.outputs[matches[1]] = {
+      current_output = {
         available_transformations = parse_transformations(matches[2], false),
-        connected = false, on = false
+        connected = false, on = false,
+        properties = {},
+        edid = ''
       }
+      info.outputs[matches[1]] = current_output
     end,
     ['^%s%s%s(%d+)x(%d+)%s+(.+)$'] = function(matches)
       -- Match modelines. Only care about resolution and refresh.
