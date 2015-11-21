@@ -33,7 +33,7 @@ The instructions assume you went with the git-clone route. Go to .config/awesome
 
 # Required software
 
-Foggy should run with stock Xorg as installed on a modern Linux systems. It uses some standard tools to read XRandR and Xinerama info. Check that `xdpyinfo`, `xrandr` are installed and on $PATH.
+Foggy should run with stock Xorg as installed on modern Linux systems. It uses some standard tools to read XRandR and Xinerama info. Check that `xdpyinfo`, `xrandr` are installed and on $PATH.
 
 # Usage
 
