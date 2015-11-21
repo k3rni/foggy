@@ -14,11 +14,12 @@ end
 function edid.parse_edid(edid_str)
   local bytes = a2b(edid_str)
   local ord = string.byte
-  local data = {}
+  local data = { }
   
   -- Source: https://en.wikipedia.org/wiki/Extended_Display_Identification_Data
   -- NOTE: all offsets in the spec are zero-based, while Lua's are one-based.
 
+  data.monitor_name = nil
   local mfr0, mfr1 = ord(bytes, 11, 12)
   data.manufacturer_code = mfr0 + mfr1 * 2^8
 

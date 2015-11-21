@@ -27,7 +27,12 @@ end
 
 local function output_name(co)
   if co.edid ~= "" then
-    return co.name .. " (" .. edid.monitor_name(co.edid) .. ")"
+    local monitor_name = edid.monitor_name(co.edid)
+    if monitor_name then
+      return co.name .. " (" .. edid.monitor_name(co.edid) .. ")"
+    else
+      return co.name
+    end
   else
     return co.name
   end

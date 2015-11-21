@@ -204,7 +204,12 @@ function xrandr.actions.identify_outputs(timeout)
       textbox:set_font('sans 36')
       local text
       if output.edid ~= "" then
-        text = name .. "\n" .. edid.monitor_name(output.edid)
+        local monitor_name = edid.monitor_name(output.edid)
+        if monitor_name then
+          text = name .. "\n" .. edid.monitor_name(output.edid)
+        else
+          text = name
+        end
       else
         text = name
       end
