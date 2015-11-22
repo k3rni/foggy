@@ -10,7 +10,7 @@ local function get_output(screen_num)
   local heads = xinerama.info().heads
   local xrinfo = xrandr.info()
   -- awesome always uses xinerama screen order, but 1-numbered
-  local xs = heads[tostring(screen_num - 1)]
+  local xs = heads[string.format("%d", screen_num - 1)]
   -- probably horribly wrong on advanced setups:
   -- the current xrandr output is the one that matches current screen's resolution + offset
   local co = nil
