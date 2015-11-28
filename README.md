@@ -84,3 +84,13 @@ directly, without the background).
 
 Restart awesome as above. Now, clicking that icon in the bar should bring up foggy.
 
+# Problems?
+
+[File an issue](https://github.com/k3rni/foggy/issues/new) on Github. Be sure to include as much diagnostic information as possible. Check [Reporting errors](https://github.com/k3rni/foggy/wiki/Reporting%20errors) on where to find it.
+
+# Contributing
+
+* fork the repository
+* hack on code
+* write specs for it! run them using [busted](http://olivinelabs.com/busted/), e.g `busted --helper spec/helper.lua spec/YOUR_SPEC.lua`
+* create a pull request
