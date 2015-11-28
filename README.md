@@ -67,6 +67,8 @@ If the brightness keys don't work, it might be an ACPI issue, not awesome's. In 
 
 Note: This'll only adjust backlight for whatever screen the cursor is currently in. If you need to adjust it across all screens, either call `inc_backlight` more than once, passing a screen number in the second parameter; or use the standalone `xbacklight` command instead.
 
+See [Backlight on wiki](https://github.com/k3rni/foggy/wiki/Backlight) for more info.
+
 ## Widgets (do-it-yourself style)
 
 To add a widget, add something similar to where the widget box is built. Replace the icon path, and background color if necessary (or just add the imagebox
