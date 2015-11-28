@@ -98,7 +98,7 @@ function xrandr.info(fp)
       local w = tonumber(matches[1])
       local h = tonumber(matches[2])
       for refresh, symbols in matches[3]:gmatch('([%d.]+)(..)') do
-        local mode = { w, h, tonumber(refresh) }
+        local mode = { w, h, math.floor(tonumber(refresh)) }
         local modes = current_output.modes
         modes[#modes + 1] = mode
         if symbols:find('%*') then
