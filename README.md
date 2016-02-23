@@ -22,7 +22,7 @@ When foggy is invoked, it displays a popup menu that allows you to manipulate di
 
 ```shell
   cd ~/.config/awesome
-  git clone https://github.com/k3rni/foggy
+  git clone https://gitlab.com/k3rni/foggy
 ```
 
 ## With [awesome-copycats](http://github.com/copycat-killer/awesome-copycats)
