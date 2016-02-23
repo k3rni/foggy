@@ -25,12 +25,12 @@ When foggy is invoked, it displays a popup menu that allows you to manipulate di
   git clone https://github.com/k3rni/foggy
 ```
 
-## With [awesome-copycats](/copycat-killer/awesome-copycats)
+## With [awesome-copycats](http://github.com/copycat-killer/awesome-copycats)
 
 The instructions assume you went with the git-clone route. Go to .config/awesome as above, but add foggy as a submodule:
 
 ```shell
-  git submodule add https://github.com/k3rni/foggy
+  git submodule add https://gitlab.com/k3rni/foggy
 ```
 
 ## Required software
@@ -67,7 +67,7 @@ If the brightness keys don't work, it might be an ACPI issue, not awesome's. In 
 
 Note: This'll only adjust backlight for whatever screen the cursor is currently in. If you need to adjust it across all screens, either call `inc_backlight` more than once, passing a screen number in the second parameter; or use the standalone `xbacklight` command instead.
 
-See [Backlight on wiki](https://github.com/k3rni/foggy/wiki/Backlight) for more info.
+See [Backlight on wiki](https://gitlab.com/k3rni/foggy/wikis/Backlight) for more info.
 
 ## Widgets (do-it-yourself style)
 
@@ -88,7 +88,7 @@ Restart awesome as above. Now, clicking that icon in the bar should bring up fog
 
 # Problems?
 
-[File an issue](https://github.com/k3rni/foggy/issues/new) on Github. Be sure to include as much diagnostic information as possible. Check [Reporting errors](https://github.com/k3rni/foggy/wiki/Reporting%20errors) on where to find it.
+[File an issue](https://gitlab.com/k3rni/foggy/issues/new) on GitLab. Be sure to include as much diagnostic information as possible. Check [Reporting errors](https://gitlab.com/k3rni/foggy/wikis/Reporting%20errors) on where to find it.
 
 # Contributing
 
