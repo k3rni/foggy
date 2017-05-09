@@ -37,6 +37,11 @@ The instructions assume you went with the git-clone route. Go to .config/awesome
 
 Foggy should run with stock Xorg as installed on modern Linux systems. It uses some standard tools to read XRandR and Xinerama info. Check that `xdpyinfo`, `xrandr` are installed and on $PATH.
 
+# Which version of Awesome are you using?
+
+Foggy now supports Awesome 4.0 and higher by default. If you need it to work on Awesome 3.4 or 3.5, please use the `awesome-3.5` branch. 
+Just append `-b awesome-3.5` to whichever of the commands above you're using.
+
 # Usage
 
 Edit your rc.lua, and add the following somewhere with the other require lines:
