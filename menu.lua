@@ -204,16 +204,15 @@ local function build_menu(current_screen)
   return scrn_menu
 end
 
-
 function menu.menu(current_screen)
-  current_screen = current_screen or mouse.screen
+  current_screen = current_screen or mouse.screen.index
   local thismenu = build_menu(current_screen)
   awful.menu.new({ items = thismenu,
     theme = { width = 280 }}):show()
 end
 
 function menu.backlight(current_screen)
-  current_screen = current_screen or mouse.screen
+  current_screen = current_screen or mouse.screen.index
   local amenu = build_backlight_menu(current_screen)
   if amenu ~= nil then
     awful.menu(amenu):show()

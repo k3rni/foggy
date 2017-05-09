@@ -195,6 +195,7 @@ end
 function xrandr.actions.identify_outputs(timeout)
   timeout = timeout or 3
   local wibox = require("wibox")
+  local awful = require("awful")
 
   for name, output in pairs(xrandr.info().outputs) do
     if output.connected and output.on then
@@ -217,7 +218,8 @@ function xrandr.actions.identify_outputs(timeout)
       textbox:set_align("center")
       layout:add(textbox)
       box:set_widget(layout)
-      local w, h = textbox:fit(-1, -1)
+      local screen = awful.screen.getbycoord(output.offset[1] + 1, output.offset[2] + 1)
+      local w, h = textbox:get_preferred_size(screen)
       local xoff = (output.resolution[1] - w) / 2
       local yoff = (output.resolution[2] - h) / 2
       box:geometry({x = output.offset[1] + xoff, y = output.offset[2] + yoff, width=w, height=h})
