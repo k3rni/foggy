@@ -1,4 +1,8 @@
 local edid = require('foggy.edid')
+--[[ debug
+local naughty = require("naughty")
+--]]
+
 local cmd
 
 local status, cmd_fun = pcall(function()
@@ -83,7 +87,7 @@ function xrandr.info(fp)
       }
       info.outputs[matches[1]] = current_output
     end,
-    ['^([-%a%d]+) disconnected %(([%a%s]+)%)$'] = function(matches)
+    ['^([-%a%d]+) disconnected .*%(([%a%s]+)%)$'] = function(matches)
       -- Match disconnected outputs
       current_output = {
         available_transformations = parse_transformations(matches[2], false),
@@ -146,6 +150,14 @@ function xrandr.info(fp)
       local res 
       res = {line:find(pat)}
       if #res > 0 then
+        --[[ debug
+        naughty.notify({
+            preset = naughty.config.presets.normal,
+            title=pat,
+            text=line,
+            timeout = 600
+        })
+        --]]
         table.remove(res, 1)
         table.remove(res, 1)
         func(res)
