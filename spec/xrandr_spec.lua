@@ -129,3 +129,24 @@ describe('foggy.xrandr', function()
   end)
 
 end)
+
+describe('foggy.xrandr_parsing', function()
+  local xrandr = require('xrandr')
+  local fp = io.open('spec/primary_disconnected.txt')
+  local info = xrandr.info(fp)
+
+  it('has one connected and one disconnected output', function()
+    local connected = {}
+    local disconnected = {}
+    for name, output in pairs(info.outputs) do
+      if output.connected then
+        table.insert(connected, name)
+      else
+        table.insert(disconnected, name)
+      end
+    end
+
+    assert.is.same({ 'DisplayPort-0' }, connected, "Connected outputs must match")
+    assert.is.same({ 'HDMI-0' }, disconnected, "Disconnected outputs must match")
+  end)
+end)
